@@ -7,7 +7,7 @@ APP_DIR="$HOME/Applications/KeepAwake.app"
 MACOS_DIR="$APP_DIR/Contents/MacOS"
 
 rm -rf "$APP_DIR"
-mkdir -p "$MACOS_DIR"
+mkdir -p "$MACOS_DIR" "$APP_DIR/Contents/Resources"
 
 # Info.plist
 cat > "$APP_DIR/Contents/Info.plist" <<'PLIST'
@@ -27,6 +27,10 @@ cat > "$APP_DIR/Contents/Info.plist" <<'PLIST'
     <string>1.0</string>
     <key>CFBundleExecutable</key>
     <string>KeepAwake</string>
+    <key>CFBundleIconFile</key>
+    <string>AppIcon</string>
+    <key>CFBundleIconName</key>
+    <string>AppIcon</string>
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>LSMinimumSystemVersion</key>
@@ -46,6 +50,14 @@ swiftc -O \
     "$SRC_DIR/Sources/AppDelegate.swift" \
     "$SRC_DIR/Sources/SettingsView.swift" \
     -o "$MACOS_DIR/KeepAwake"
+
+# 嵌入 App icon（如果存在）
+if [[ -f "$SRC_DIR/build/AppIcon.icns" ]]; then
+    cp "$SRC_DIR/build/AppIcon.icns" "$APP_DIR/Contents/Resources/AppIcon.icns"
+    echo "✓ 嵌入 App 图标"
+else
+    echo "⚠ 未找到 build/AppIcon.icns（先跑 bash icons.sh）"
+fi
 
 # 去掉隔离属性（首次启动需要）
 xattr -dr com.apple.quarantine "$APP_DIR" 2>/dev/null || true

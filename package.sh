@@ -60,12 +60,21 @@ xattr -dr com.apple.quarantine "$APP_SRC" 2>/dev/null || true
 
 # ---------- 4. 构建 DMG staging ----------
 echo "==> 构建 DMG staging..."
-rm -rf "$DMG_DIR"
+# 保留 iconset/icns 等已有产物，只清 staging 子目录
+rm -rf "$DMG_DIR/staging" "$DMG_DIR/temp_rw.dmg"
 mkdir -p "$DMG_DIR/staging"
 cp -R "$APP_SRC" "$DMG_DIR/staging/${APP_NAME}.app"
 
 # Applications 快捷方式（用户拖拽目标）
 ln -s /Applications "$DMG_DIR/staging/Applications"
+
+# DMG 卷标图标（mount 后在 Finder 侧栏和顶部看到的图标）
+if [[ -f "$HERE/build/AppIcon.icns" ]]; then
+    # macOS 用 .VolumeIcon.icns 作为 DMG 卷标
+    mkdir -p "$DMG_DIR/staging/.KeepAwake"
+    cp "$HERE/build/AppIcon.icns" "$DMG_DIR/staging/.KeepAwake/.VolumeIcon.icns"
+    echo "==> 已注入 DMG 卷标图标"
+fi
 
 # README
 cat > "$DMG_DIR/staging/安装说明.txt" <<EOF
@@ -87,12 +96,48 @@ EOF
 # ---------- 5. 创建 DMG ----------
 echo "==> 创建 DMG: $OUTPUT"
 DMG_STAGING="$DMG_DIR/staging"
-# 创建只读 DMG
-hdiutil create -volname "$APP_NAME" \
-    -srcfolder "$DMG_STAGING" \
-    -ov -format UDZO \
-    -fs HFS+ \
-    "$OUTPUT"
+# 创建只读 DMG（如有图标则一并注入）
+ICON_ARG=""
+if [[ -f "$HERE/build/AppIcon.icns" ]]; then
+    # hdiutil 不直接支持 -icon，需要创建后用 sips/hdiutil 注入 .VolumeIcon.icns 到根卷
+    # 临时 writable DMG 做法：
+    RW_DMG="$DMG_DIR/temp_rw.dmg"
+    # 用 -srcfolder 时 . 开头的隐藏文件会被排除，但我们用普通文件名
+    # 创建一个临时 staging 副本（不复制隐藏文件目录）
+    rm -rf "$DMG_DIR/staging_nohide"
+    mkdir -p "$DMG_DIR/staging_nohide"
+    # 把可见文件复制过去（不包括 .KeepAwake/、._*、._ 开头的隐藏文件）
+    find "$DMG_STAGING" -maxdepth 1 -mindepth 1 ! -name ".*" -exec cp -R {} "$DMG_DIR/staging_nohide/" \;
+    cp "$HERE/build/AppIcon.icns" "$DMG_DIR/staging_nohide/zz_keep_awake_icon.icns"
+    hdiutil create -volname "$APP_NAME" \
+        -srcfolder "$DMG_DIR/staging_nohide" \
+        -ov -format UDRW \
+        -fs HFS+ \
+        "$RW_DMG"
+    # 挂载读写 DMG
+    MOUNT=$(hdiutil attach -readwrite -nobrowse "$RW_DMG" 2>/dev/null | awk '/Apple_HFS/{print $3; exit}')
+    if [[ -n "$MOUNT" ]]; then
+        mv "$MOUNT/zz_keep_awake_icon.icns" "$MOUNT/.VolumeIcon.icns"
+        SetFile -a V "$MOUNT/.VolumeIcon.icns" 2>/dev/null || true
+        hdiutil detach "$MOUNT" >/dev/null
+        hdiutil convert "$RW_DMG" -format UDZO -ov -o "$OUTPUT"
+        rm -rf "$RW_DMG" "$DMG_DIR/staging_nohide"
+    else
+        echo "⚠ 挂载读写 DMG 失败，回退到无图标方式"
+        rm -rf "$RW_DMG" "$DMG_DIR/staging_nohide"
+        hdiutil create -volname "$APP_NAME" \
+            -srcfolder "$DMG_STAGING" \
+            -ov -format UDZO \
+            -fs HFS+ \
+            "$OUTPUT"
+    fi
+else
+    hdiutil create -volname "$APP_NAME" \
+        -srcfolder "$DMG_STAGING" \
+        -ov -format UDZO \
+        -fs HFS+ \
+        "$OUTPUT"
+fi
 
 echo ""
 echo "✅ 打包完成: $OUTPUT"
