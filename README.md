@@ -4,8 +4,6 @@
 >
 > macOS menu-bar keep-awive utility — schedule by start time, duration, weekdays. Screen can sleep, but CPU / Wi-Fi / Ghostty keep running.
 
-![KeepAwake menu bar](docs/screenshot-menubar.png)
-
 ## 功能 / Features
 
 - 🌙 **菜单栏 App** —— 一键开启/关闭，点图标弹出快捷菜单
