@@ -13,7 +13,7 @@ set -euo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
 APP_NAME="KeepAwake"
-VERSION="1.1"
+VERSION="1.2"
 APP_SRC="$HOME/Applications/${APP_NAME}.app"
 DMG_DIR="$HERE/build"
 DMG_NAME="${APP_NAME}-v${VERSION}"
