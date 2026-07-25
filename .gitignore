@@ -1,0 +1,18 @@
+# Build 输出
+build/
+
+# macOS
+.DS_Store
+*.swp
+
+# Xcode
+xcuserdata/
+*.xcworkspace/xcuserdata/
+*.xcodeproj/xcuserdata/
+build/
+DerivedData/
+
+# Swift
+.build/
+.swiftpm/
+Package.resolved
