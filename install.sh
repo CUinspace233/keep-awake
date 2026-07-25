@@ -79,3 +79,18 @@ echo ""
 echo "查看状态: bash $SCRIPT --status"
 echo "查看日志: tail -f $LOG"
 echo "卸载: bash $SCRIPT --uninstall  或者  bash $HERE/install.sh --uninstall"
+
+# 如果是从 Terminal.app 跑的（KeepAwake App 触发），提示用户关闭
+PPID_CHAIN=$(ps -o comm= -p $PPID 2>/dev/null)
+if [[ "$PPID_CHAIN" == "bash" || "$PPID_CHAIN" == "sh" ]]; then
+    echo ""
+    echo "💡 安装完成。可以关闭这个 Terminal 窗口了（按 ⌘W 或输入 exit + 回车）。"
+    # 给用户一点时间看清结果，然后礼貌退出 shell 让 Terminal 关掉
+    if [[ -t 0 ]]; then
+        # 交互模式（用户能输入）：等用户按回车
+        read -r -p "  按回车键关闭此窗口："
+    else
+        # 非交互（App 的 .command 文件 < /dev/null）：直接退出
+        exit 0
+    fi
+fi

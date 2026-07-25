@@ -226,15 +226,45 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func showInstallAlert() {
         let helper = Bundle.main.resourcePath.map { "\($0)/InstallHelper/install.sh" } ?? ""
+        let cmd = "bash \(helper) < /dev/null"
+
         let alert = NSAlert()
         alert.messageText = "需要完成一次性安装"
-        alert.informativeText = "KeepAwake 需要一个后台脚本来控制 caffeinate。由于 macOS 安全限制，App 无法自行安装。请打开「终端」并粘贴下面的命令（已自动复制到剪贴板）：\n\nbash \(helper)\n\n安装完成后重新启动 KeepAwake 即可。"
+        alert.informativeText = """
+        KeepAwake 需要一个后台脚本来控制 caffeinate。
+        由于 macOS 安全限制，App 无法自行安装 LaunchAgent，需要你在终端里执行一条命令。
+
+        已自动把下面的命令复制到剪贴板：
+            \(cmd)
+
+        点击「打开终端并执行」会自动在 Terminal.app 里运行这条命令，
+        安装完成后只需回到本窗口，再启动一次 KeepAwake 即可。
+        """
         alert.alertStyle = .informational
-        alert.addButton(withTitle: "好")
-        _ = alert.runModal()
+        alert.addButton(withTitle: "打开终端并执行")
+        alert.addButton(withTitle: "我自己来")
+        let response = alert.runModal()
+
+        // 把命令放进剪贴板，无论用户点哪个按钮都能用
         let pb = NSPasteboard.general
         pb.clearContents()
-        pb.setString("bash \(helper)", forType: .string)
+        pb.setString(cmd, forType: .string)
+
+        if response == .alertFirstButtonReturn {
+            // 把命令写入临时脚本，Terminal 打开它（避免 shell 转义问题）
+            let tmpScript = "/tmp/keep-awake-install.command"
+            try? cmd.write(toFile: tmpScript, atomically: true, encoding: .utf8)
+            chmod(tmpScript, 0o755)
+            // 用 open 让 macOS 用默认应用（Terminal.app）打开
+            NSWorkspace.shared.open(URL(fileURLWithPath: tmpScript))
+        }
+    }
+
+    // chmod helper for /tmp install helper
+    private func chmod(_ path: String, _ mode: UInt16) {
+        path.withCString { cstr in
+            Darwin.chmod(cstr, mode_t(mode))
+        }
     }
 
     private func runShell(_ launchPath: String, _ args: [String]) {

@@ -44,7 +44,7 @@ cat > "$APP_DIR/Contents/Info.plist" <<'PLIST'
     <key>SUPublicEDKey</key>
     <string>bOSokyZpkcejzAs+1aFn5zTOa4wSwnscQuFb/ULlcoE=</string>
     <key>SUFeedURL</key>
-    <string>https://raw.githubusercontent.com/CUinspace233/keep-awake/main/appcast.xml</string>
+    <string>https://github.com/CUinspace233/keep-awake/releases/latest/download/appcast.xml</string>
     <key>SUEnableAutomaticChecks</key>
     <true/>
 </dict>
@@ -75,6 +75,17 @@ if [[ -f "$SRC_DIR/build/AppIcon.icns" ]]; then
     echo "✓ 嵌入 App 图标"
 else
     echo "⚠ 未找到 build/AppIcon.icns（先跑 bash icons.sh）"
+fi
+
+# 注入 InstallHelper（首次启动时 NSAlert 会用这个路径打开 Terminal 自动执行）
+if [[ -f "$SRC_DIR/install.sh" ]]; then
+    mkdir -p "$APP_DIR/Contents/Resources/InstallHelper"
+    cp "$SRC_DIR/install.sh" "$APP_DIR/Contents/Resources/InstallHelper/install.sh"
+    cp "$SRC_DIR/keep-awake.sh" "$APP_DIR/Contents/Resources/InstallHelper/keep-awake.sh"
+    cp "$SRC_DIR/com.cuinspace.keep-awake.plist" "$APP_DIR/Contents/Resources/InstallHelper/com.cuinspace.keep-awake.plist"
+    chmod +x "$APP_DIR/Contents/Resources/InstallHelper/install.sh"
+    chmod +x "$APP_DIR/Contents/Resources/InstallHelper/keep-awake.sh"
+    echo "✓ 注入 InstallHelper"
 fi
 
 # 去掉隔离属性（首次启动需要）
