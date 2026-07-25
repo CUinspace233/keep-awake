@@ -102,14 +102,33 @@ open ~/Applications/KeepAwake.app
 
 ## 卸载 / Uninstall
 
-```bash
-# 一行命令：卸载后台引擎
-bash "/Applications/KeepAwake.app/Contents/Resources/InstallHelper/install.sh" --uninstall
+### 方式 1：DMG 安装包自带卸载器
 
-# 然后删除 App
+```bash
+bash "/Applications/KeepAwake.app/Contents/Resources/InstallHelper/install.sh" --uninstall
 rm -rf ~/Applications/KeepAwake.app
-rm -rf ~/.config/keep-awake.json ~/.config/keep-awake.pid
 ```
+
+### 方式 2：独立卸载脚本（推荐，无需 App 安装包）
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/CUinspace233/keep-awake/main/uninstall.sh | bash
+```
+
+或者从本地源码：
+
+```bash
+bash uninstall.sh            # 完整卸载
+bash uninstall.sh --keep-app # 只卸载后台引擎，保留 App
+```
+
+完整卸载会清理：
+- GUI App 进程
+- LaunchAgent `~/Library/LaunchAgents/com.cuinspace.keep-awake.plist`
+- 后台引擎 `~/Library/Scripts/keep-awake.sh`
+- 配置 + PID `~/.config/keep-awake.{json,pid}`
+- 日志 `~/Library/Logs/keep-awake.*`
+- App 本体 `~/Applications/KeepAwake.app`
 
 ## 常见问题 / FAQ
 

@@ -28,6 +28,25 @@ mkdir -p "$(dirname "$CONFIG")" "$(dirname "$LOG")"
 
 log() { echo "[$(date '+%F %T')] $*" >> "$LOG"; }
 
+# ---------- 日志清理 ----------
+# 策略：保留 30 天内的日志；超过 30 天的 .log/.out/.err 全部删除
+# 在 daemon 启动时跑一次（每天最多一次）
+LOG_DIR="$(dirname "$LOG")"
+LOG_RETENTION_DAYS=30
+
+rotate_logs() {
+    # 删掉 N 天前的旧日志
+    find "$LOG_DIR" -maxdepth 1 -type f \
+        \( -name 'keep-awake.log*' -o -name 'keep-awake.out*' -o -name 'keep-awake.err*' \) \
+        -mtime +${LOG_RETENTION_DAYS} -delete 2>/dev/null || true
+    # 单文件超过 1MB 时轮转：旧文件改名 .1，新文件从空开始
+    for f in "$LOG" "$LOG_DIR/keep-awake.out" "$LOG_DIR/keep-awake.err"; do
+        if [[ -f "$f" ]] && [[ $(stat -f%z "$f" 2>/dev/null || echo 0) -gt 1048576 ]]; then
+            mv "$f" "${f}.1.$(date '+%Y%m%d')"
+        fi
+    done
+}
+
 # ---------- 默认配置 ----------
 default_config() {
 cat <<'JSON'
@@ -167,6 +186,7 @@ should_be_active() {
 # ---------- daemon 模式 ----------
 daemon_loop() {
     log "daemon started, watching $CONFIG"
+    rotate_logs
     while true; do
         ensure_config
         local now_epoch
