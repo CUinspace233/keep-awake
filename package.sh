@@ -147,3 +147,39 @@ ls -lh "$OUTPUT"
 
 # ---------- 6. 清理 ----------
 rm -rf "$DMG_DIR/staging"
+
+# ---------- 7. 生成 Sparkle appcast.xml ----------
+UPDATE_DIR="$DMG_DIR/update"
+mkdir -p "$UPDATE_DIR"
+
+# 把 DMG 复制到 update/（保留原 DMG 在 build/）
+cp "$OUTPUT" "$UPDATE_DIR/${APP_NAME}-v${VERSION}.dmg"
+
+# 生成 appcast：扫 update/ 目录里所有 dmg，签 EdDSA 签名
+APP_SIGN="$DMG_DIR/appcast.xml"
+"$HERE/bin/generate_appcast" \
+    --ed-key-file <(security find-generic-password -s "https://sparkle-project.org" -w 2>/dev/null) \
+    -o "$APP_SIGN" \
+    "$UPDATE_DIR" 2>&1 | tail -3 || {
+    echo "⚠ generate_appcast 失败，尝试不带密钥签名（不安全模式）"
+    "$HERE/bin/generate_appcast" \
+        -o "$APP_SIGN" \
+        "$UPDATE_DIR" 2>&1 | tail -3
+}
+
+echo ""
+echo "✅ appcast 已生成: $APP_SIGN"
+
+# 把 appcast 里的 ${VERSION} 字面量替换成实际版本（generate_appcast 内部版本探测失败时回退字符串）
+sed -i '' "s|\${VERSION}|${VERSION}|g" "$APP_SIGN" 2>/dev/null
+
+# 同时把 url 从 update/ 路径下生成（默认 generate_appcast 会输出和文件名一致的相对路径）
+sed -i '' "s|main/${APP_NAME}-v${VERSION}.dmg|main/update/${APP_NAME}-v${VERSION}.dmg|g" "$APP_SIGN" 2>/dev/null
+
+echo ""
+echo "📦 产物清单:"
+ls -lh "$OUTPUT" "$UPDATE_DIR" "$APP_SIGN" 2>&1 | head -20
+echo ""
+echo "📋 发布步骤："
+echo "  git add appcast.xml update/ && git commit && git push"
+echo "  gh release create v${VERSION} $OUTPUT --title 'KeepAwake v${VERSION}' --notes '...'"

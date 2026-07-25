@@ -5,6 +5,8 @@ set -euo pipefail
 SRC_DIR="$(cd "$(dirname "$0")" && pwd)"
 APP_DIR="$HOME/Applications/KeepAwake.app"
 MACOS_DIR="$APP_DIR/Contents/MacOS"
+DMG_DIR="$SRC_DIR/build"
+VERSION="1.1"
 
 rm -rf "$APP_DIR"
 mkdir -p "$MACOS_DIR" "$APP_DIR/Contents/Resources"
@@ -22,9 +24,9 @@ cat > "$APP_DIR/Contents/Info.plist" <<'PLIST'
     <key>CFBundleIdentifier</key>
     <string>com.cuinspace.KeepAwake</string>
     <key>CFBundleVersion</key>
-    <string>1</string>
+    <string>${VERSION}</string>
     <key>CFBundleShortVersionString</key>
-    <string>1.0</string>
+    <string>${VERSION}</string>
     <key>CFBundleExecutable</key>
     <string>KeepAwake</string>
     <key>CFBundleIconFile</key>
@@ -39,6 +41,12 @@ cat > "$APP_DIR/Contents/Info.plist" <<'PLIST'
     <true/>
     <key>NSHighResolutionCapable</key>
     <true/>
+    <key>SUPublicEDKey</key>
+    <string>bOSokyZpkcejzAs+1aFn5zTOa4wSwnscQuFb/ULlcoE=</string>
+    <key>SUFeedURL</key>
+    <string>https://raw.githubusercontent.com/CUinspace233/keep-awake/main/appcast.xml</string>
+    <key>SUEnableAutomaticChecks</key>
+    <true/>
 </dict>
 </plist>
 PLIST
@@ -47,9 +55,19 @@ PLIST
 swiftc -O \
     -target arm64-apple-macosx14.0 \
     -framework AppKit -framework SwiftUI \
+    -F "$DMG_DIR/sparkle" \
+    -framework Sparkle \
+    -Xlinker -rpath -Xlinker "@loader_path/../Frameworks" \
     "$SRC_DIR/Sources/AppDelegate.swift" \
     "$SRC_DIR/Sources/SettingsView.swift" \
     -o "$MACOS_DIR/KeepAwake"
+
+# 把 Sparkle.framework 嵌入 App
+if [[ -d "$DMG_DIR/sparkle/Sparkle.framework" ]]; then
+    mkdir -p "$APP_DIR/Contents/Frameworks"
+    cp -R "$DMG_DIR/sparkle/Sparkle.framework" "$APP_DIR/Contents/Frameworks/"
+    echo "✓ 嵌入 Sparkle.framework"
+fi
 
 # 嵌入 App icon（如果存在）
 if [[ -f "$SRC_DIR/build/AppIcon.icns" ]]; then
@@ -61,6 +79,11 @@ fi
 
 # 去掉隔离属性（首次启动需要）
 xattr -dr com.apple.quarantine "$APP_DIR" 2>/dev/null || true
+
+# 把 ${VERSION} 替换成实际版本号
+/usr/libexec/PlistBuddy -c "Set :CFBundleVersion $VERSION" "$APP_DIR/Contents/Info.plist" 2>/dev/null
+/usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $VERSION" "$APP_DIR/Contents/Info.plist" 2>/dev/null
+echo "✓ 版本号: $VERSION"
 
 echo "✓ 编译完成: $APP_DIR"
 echo "  启动: open $APP_DIR"

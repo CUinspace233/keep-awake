@@ -1,5 +1,6 @@
 import AppKit
 import SwiftUI
+import Sparkle
 
 // 显式 _main 入口，避免 SwiftUI App 自动创建主菜单栏/Dock 图标
 @_cdecl("main")
@@ -20,6 +21,7 @@ let KEEP_AWAKE_PIDFILE = "\(NSHomeDirectory())/.config/keep-awake.pid"
 let KEEP_AWAKE_CONFIG = "\(NSHomeDirectory())/.config/keep-awake.json"
 
 class AppDelegate: NSObject, NSApplicationDelegate {
+    private var updaterController: SPUStandardUpdaterController!
     private var statusItem: NSStatusItem!
     private var menu: NSMenu!
     private var settingsWindow: NSWindow!
@@ -54,6 +56,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             self?.refreshStatusIcon()
         }
         refreshStatusIcon()
+
+        // Sparkle 自动升级（启动时异步检查，菜单可手动触发）
+        updaterController = SPUStandardUpdaterController(
+            startingUpdater: true,
+            updaterDelegate: nil,
+            userDriverDelegate: nil
+        )
     }
 
     private func buildMenu() {
@@ -98,6 +107,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let openSettings = NSMenuItem(title: "详细设置…", action: #selector(openSettings(_:)), keyEquivalent: "")
         openSettings.target = self
         m.addItem(openSettings)
+
+        let checkUpdate = NSMenuItem(title: "检查更新…", action: #selector(checkForUpdates(_:)), keyEquivalent: "")
+        checkUpdate.target = self
+        m.addItem(checkUpdate)
 
         let quit = NSMenuItem(title: "退出 KeepAwake", action: #selector(quitApp(_:)), keyEquivalent: "q")
         quit.target = self
@@ -201,6 +214,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
         NSApp.activate(ignoringOtherApps: true)
         settingsWindow.makeKeyAndOrderFront(nil)
+    }
+
+    @objc private func checkForUpdates(_ sender: NSMenuItem?) {
+        updaterController.checkForUpdates(sender)
     }
 
     @objc private func quitApp(_ sender: NSMenuItem?) {

@@ -1,0 +1,15 @@
+<?xml version="1.0" standalone="yes"?>
+<rss xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" version="2.0">
+    <channel>
+        <title>KeepAwake</title>
+        <item>
+            <title>1.1</title>
+            <pubDate>Sat, 25 Jul 2026 22:41:33 +0800</pubDate>
+            <sparkle:version>1.1</sparkle:version>
+            <sparkle:shortVersionString>1.1</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
+            <enclosure url="https://raw.githubusercontent.com/CUinspace233/keep-awake/main/update/KeepAwake-v1.1.dmg" length="1672406" type="application/octet-stream" sparkle:edSignature="Di8h8XQvVXIyCxZwyM8XxB8kLvPYeuZrcZ8znRVKjOU5pdADZInqGTDeQo62xYeos0Vk3mP3KSB4b8adR8CKDw=="/>
+        </item>
+    </channel>
+</rss>
