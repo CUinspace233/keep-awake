@@ -1,6 +1,6 @@
 # KeepAwake
 
-> macOS 菜单栏保活工具 —— 自定义开始时间、时长、星期，屏幕可黑但 CPU / Wi‑Fi / Ghostty 持续工作。
+> macOS 菜单栏保活工具 —— 自定义开始时间、时长、星期，屏幕可黑但 CPU / Wi‑Fi / Terminal 等进程持续工作。
 >
 > macOS menu-bar keep-awive utility — schedule by start time, duration, weekdays. Screen can sleep, but CPU / Wi-Fi / Ghostty keep running.
 
