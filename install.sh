@@ -49,12 +49,20 @@ sed "s|/Users/cuinspace|$HOME|g" "$HERE/com.cuinspace.keep-awake.plist" > "$PLIS
 echo "  ✓ 写 LaunchAgent: $PLIST"
 
 # 加载 LaunchAgent
-launchctl load -w "$PLIST"
-sleep 1
-if launchctl list | grep -q "$LABEL"; then
-    echo "  ✓ LaunchAgent 已启动（开机自启）"
-else
-    echo "  ⚠ LaunchAgent 加载失败，请检查日志: $LOG"
+launchctl load -w "$PLIST" 2>&1 | sed 's/^/    /'
+# macOS 26 上 launchd 注册 label 偶尔超过 3 秒，最多等 15 秒，每秒重试
+FOUND=0
+for i in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15; do
+    sleep 1
+    if launchctl list | grep -q "$LABEL"; then
+        PID=$(launchctl list | grep "$LABEL" | awk '{print $1}')
+        echo "  ✓ LaunchAgent 已启动（pid=$PID，开机自启）"
+        FOUND=1
+        break
+    fi
+done
+if [[ $FOUND -eq 0 ]]; then
+    echo "  ⚠ LaunchAgent 加载后 15s 内未出现在 list，检查日志: $LOG"
     exit 1
 fi
 

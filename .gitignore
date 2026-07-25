@@ -1,5 +1,12 @@
-# Build 输出
+# Build 输出（白名单 update/ 子目录，里面是 Sparkle DMG）
 build/
+build/sparkle/
+build/temp_rw.dmg
+build/KeepAwake.iconset/
+build/AppIcon-1024.png
+build/AppIcon.icns
+build/staging*
+build/KeepAwake-v*.dmg
 
 # macOS
 .DS_Store
