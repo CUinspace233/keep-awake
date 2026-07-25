@@ -13,9 +13,10 @@ set -euo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
 APP_NAME="KeepAwake"
+VERSION="1.1"
 APP_SRC="$HOME/Applications/${APP_NAME}.app"
 DMG_DIR="$HERE/build"
-DMG_NAME="${APP_NAME}-v1.0"
+DMG_NAME="${APP_NAME}-v${VERSION}"
 DMG_PATH="$DMG_DIR/${DMG_NAME}.dmg"
 
 OUTPUT="$DMG_PATH"
@@ -50,8 +51,9 @@ rm -rf "$RES/InstallHelper"
 mkdir -p "$RES/InstallHelper"
 cp "$HERE/install.sh" "$RES/InstallHelper/install.sh"
 cp "$HERE/keep-awake.sh" "$RES/InstallHelper/keep-awake.sh"
+cp "$HERE/uninstall.sh" "$RES/InstallHelper/uninstall.sh"
 cp "$HERE/com.cuinspace.keep-awake.plist" "$RES/InstallHelper/com.cuinspace.keep-awake.plist"
-chmod +x "$RES/InstallHelper/install.sh" "$RES/InstallHelper/keep-awake.sh"
+chmod +x "$RES/InstallHelper/install.sh" "$RES/InstallHelper/keep-awake.sh" "$RES/InstallHelper/uninstall.sh"
 
 # ---------- 3. ad-hoc 签名 ----------
 echo "==> ad-hoc 签名..."
