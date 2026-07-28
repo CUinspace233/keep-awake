@@ -104,6 +104,14 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         m.addItem(NSMenuItem.separator())
 
+        // 合盖保活（⚠️ 会显著耗电 + 发热，需 sudo）
+        let lidToggle = NSMenuItem(title: "合盖保活（需 sudo）…", action: #selector(toggleLidAwake(_:)), keyEquivalent: "")
+        lidToggle.target = self
+        lidToggle.tag = 200
+        m.addItem(lidToggle)
+
+        m.addItem(NSMenuItem.separator())
+
         let openSettings = NSMenuItem(title: "详细设置…", action: #selector(openSettings(_:)), keyEquivalent: "")
         openSettings.target = self
         m.addItem(openSettings)
@@ -221,7 +229,94 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     @objc private func quitApp(_ sender: NSMenuItem?) {
+        // 退出前自动清理合盖保活
+        if isLidAwakeEnabled() {
+            _ = runAdminCmd("pmset -a disablesleep 0")
+        }
         NSApp.terminate(nil)
+    }
+
+    // MARK: - 合盖保活 (pmset disablesleep)
+
+    private func isLidAwakeEnabled() -> Bool {
+        // 用 pmset -g 看 disablesleep 状态
+        let task = Process()
+        task.launchPath = "/usr/bin/pmset"
+        task.arguments = ["-g"]
+        let pipe = Pipe()
+        task.standardOutput = pipe
+        do {
+            try task.run()
+            task.waitUntilExit()
+            let out = String(data: pipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? ""
+            // 输出格式： " disablesleep    1" 或没有该行
+            return out.contains("disablesleep") && out.range(of: "disablesleep[ \\t]+1") != nil
+        } catch {
+            return false
+        }
+    }
+
+    private func runAdminCmd(_ cmd: String) -> Bool {
+        // 用 osascript 触发系统级 sudo 对话框（不接触密码）
+        let script = """
+        do shell script "\(cmd.replacingOccurrences(of: "\"", with: "\\\""))" with administrator privileges with prompt "KeepAwake 需要管理员权限修改电源设置"
+        """
+        let task = Process()
+        task.launchPath = "/usr/bin/osascript"
+        task.arguments = ["-e", script]
+        task.standardOutput = Pipe()
+        task.standardError = Pipe()
+        do {
+            try task.run()
+            task.waitUntilExit()
+            return task.terminationStatus == 0
+        } catch {
+            return false
+        }
+    }
+
+    @objc private func toggleLidAwake(_ sender: NSMenuItem) {
+        if isLidAwakeEnabled() {
+            // 当前开启 → 关闭
+            if runAdminCmd("pmset -a disablesleep 0") {
+                showToast("合盖保活已关闭")
+            }
+        } else {
+            // 当前关闭 → 弹确认框（防误触）+ 开启
+            let alert = NSAlert()
+            alert.messageText = "启用合盖保活？"
+            alert.informativeText = """
+            合盖后 MacBook 将持续工作（CPU + 网络不断）。
+            系统会请求管理员密码（用 Touch ID 或密码）。
+
+            ⚠️ 注意：
+            • 笔记本会持续发热，建议接电源 + 通风
+            • 电池会持续消耗
+            • 千万不要放进包里
+            • 退出 App 或再次点此菜单会自动恢复
+            """
+            alert.alertStyle = .warning
+            alert.addButton(withTitle: "启用")
+            alert.addButton(withTitle: "取消")
+            if alert.runModal() == .alertFirstButtonReturn {
+                if runAdminCmd("pmset -a disablesleep 1") {
+                    showToast("合盖保活已启用（合上盖子将不再睡眠）")
+                }
+            }
+        }
+    }
+
+    private func showToast(_ message: String) {
+        let alert = NSAlert()
+        alert.messageText = "KeepAwake"
+        alert.informativeText = message
+        alert.alertStyle = .informational
+        alert.addButton(withTitle: "好")
+        let win = alert.window
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+            win.performClose(nil)
+        }
+        alert.runModal()
     }
 
     private func showInstallAlert() {
