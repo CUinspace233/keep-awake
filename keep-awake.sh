@@ -133,10 +133,11 @@ should_be_active() {
         else
             end_epoch=$((start_epoch + one_dur * 60))
             [[ $now_epoch -ge $start_epoch && $now_epoch -lt $end_epoch ]] && { echo "ON"; return; }
-            # 已过期：自动关闭 oneShot
+            # 已过期：自动关闭 oneShot + 兜底 kill 孤儿 caffeinate
             if [[ $now_epoch -ge $end_epoch ]]; then
                 jq '.oneShot.active = false' "$CONFIG" > "${CONFIG}.tmp" && mv "${CONFIG}.tmp" "$CONFIG"
                 log "oneShot expired, marked inactive"
+                stop_caffeinate
             fi
         fi
     fi

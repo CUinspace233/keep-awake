@@ -175,6 +175,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             let fmt = DateFormatter(); fmt.dateFormat = "yyyy-MM-dd'T'HH:mm:ss"
             if let startDate = fmt.date(from: startAt) {
                 let endDate = startDate.addingTimeInterval(TimeInterval(dur * 60))
+                // 关键：检查是否已过期（避免显示已过期的"保活中 · 至 XX:XX"）
+                if endDate <= Date() {
+                    return ""  // 已过期，UI 应显示空闲
+                }
                 let outFmt = DateFormatter(); outFmt.dateFormat = "HH:mm"
                 return "至 \(outFmt.string(from: endDate))"
             }
