@@ -6,7 +6,7 @@ SRC_DIR="$(cd "$(dirname "$0")" && pwd)"
 APP_DIR="$HOME/Applications/KeepAwake.app"
 MACOS_DIR="$APP_DIR/Contents/MacOS"
 DMG_DIR="$SRC_DIR/build"
-VERSION="1.3"
+VERSION="1.4"
 
 rm -rf "$APP_DIR"
 mkdir -p "$MACOS_DIR" "$APP_DIR/Contents/Resources"
